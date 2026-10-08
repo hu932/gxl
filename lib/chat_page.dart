@@ -87,13 +87,21 @@ class _ChatPageState extends State<ChatPage> {
     try {
       final files = <Map<String, String>>[];
       if (_pendingImage != null) {
-        final id = await DifyApi.uploadImage(_pendingImage!);
-        if (id != null) {
+        try {
+          final id = await DifyApi.uploadImage(_pendingImage!);
           files.add({
             'type': 'image',
             'transfer_method': 'local_file',
             'upload_file_id': id,
           });
+        } catch (e) {
+          setState(() {
+            final last = _messages.lastWhere((m) => m.role == 'assistant');
+            last.content = '⚠️ 图片上传失败\n\n$e';
+            last.pending = false;
+            _busy = false;
+          });
+          return;
         }
       }
       final q = query.isEmpty ? '请看看这道题怎么做？' : query;

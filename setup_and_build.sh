@@ -35,6 +35,18 @@ $P -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" "$INFO" 2>/
 $P -c "Add :NSCameraUsageDescription string 用于拍照提问" "$INFO" 2>/dev/null || true
 $P -c "Add :NSPhotoLibraryUsageDescription string 用于选择题目图片" "$INFO" 2>/dev/null || true
 
+# 中文本地化：不声明的话 iOS 可能只提供英文键盘（切不了中文输入法）
+$P -c "Set :CFBundleDevelopmentRegion zh_CN" "$INFO" 2>/dev/null \
+  || $P -c "Add :CFBundleDevelopmentRegion string zh_CN" "$INFO" || true
+$P -c "Delete :CFBundleLocalizations" "$INFO" 2>/dev/null || true
+$P -c "Add :CFBundleLocalizations array" "$INFO" 2>/dev/null || true
+$P -c "Add :CFBundleLocalizations:0 string zh-Hans" "$INFO" 2>/dev/null || true
+$P -c "Add :CFBundleLocalizations:1 string zh-Hant" "$INFO" 2>/dev/null || true
+$P -c "Add :CFBundleLocalizations:2 string en" "$INFO" 2>/dev/null || true
+echo "--- 本地化设置 ---"
+$P -c "Print :CFBundleLocalizations" "$INFO" 2>/dev/null || true
+$P -c "Print :CFBundleDevelopmentRegion" "$INFO" 2>/dev/null || true
+
 # 4) 【关键】关闭 Xcode 自动签名，否则免签构建会被"缺少 Development Team"拦住
 echo "==> 关闭 Xcode 自动签名"
 PBX="ios/Runner.xcodeproj/project.pbxproj"
