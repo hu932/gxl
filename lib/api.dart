@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,12 +8,54 @@ import 'package:http_parser/http_parser.dart';
 import 'models.dart';
 
 /// Dify 服务配置（行测知识库）
-/// 走服务器 nginx 的 80 端口反向代理（/dify/ -> 127.0.0.1:8080），
-/// 因为 8080 端口会被部分运营商/防火墙拦截（表现为 No route to host）。
+///
+/// 双端点：**8080 直连优先**，若被运营商/防火墙拦截（表现为 No route to host）
+/// 则自动切到 80 端口的 nginx 反向代理（/dify/ -> 127.0.0.1:8080）。
 class DifyConfig {
-  static const baseUrl = 'http://38.175.194.43/dify';
+  /// 直连 Dify 端口
+  static const endpointDirect = 'http://38.175.194.43:8080';
+
+  /// 80 端口反代（备用）
+  static const endpointProxy = 'http://38.175.194.43/dify';
+
   static const apiKey = 'app-ZuI2yGKf1UxE6Rj9nJf0quRQ';
   static const user = 'ios-user-001';
+
+  static String _active = endpointDirect;
+
+  static String get baseUrl => _active;
+  static String get otherEndpoint =>
+      _active == endpointDirect ? endpointProxy : endpointDirect;
+  static bool get usingDirect => _active == endpointDirect;
+
+  static Future<bool> _alive(String base) async {
+    try {
+      final r = await http
+          .get(Uri.parse('$base/console/api/setup'))
+          .timeout(const Duration(seconds: 4));
+      return r.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 启动时探测：8080 不通就用 80 端口
+  static Future<void> resolve() async {
+    if (await _alive(endpointDirect)) {
+      _active = endpointDirect;
+      return;
+    }
+    if (await _alive(endpointProxy)) {
+      _active = endpointProxy;
+      return;
+    }
+    _active = endpointDirect; // 都探测失败就先保持直连，出错时再切换
+  }
+
+  /// 切到另一个端点
+  static void switchEndpoint() {
+    _active = otherEndpoint;
+  }
 }
 
 /// 一段流式数据
@@ -32,6 +75,20 @@ class DifyChunk {
 /// 引用来源 Citation 统一由 models.dart 提供（避免同名类重复定义造成 import 歧义）
 
 class DifyApi {
+  /// 判断是否为「连不上」类错误（这类才值得换端点重试）
+  static bool _isConnError(Object e) {
+    if (e is SocketException || e is TimeoutException) return true;
+    final s = e.toString().toLowerCase();
+    return s.contains('sockeexception') ||
+        s.contains('socketexception') ||
+        s.contains('clientexception') ||
+        s.contains('no route to host') ||
+        s.contains('connection refused') ||
+        s.contains('connection failed') ||
+        s.contains('timed out') ||
+        s.contains('timeout');
+  }
+
   /// 根据扩展名推断 MIME。**必须显式指定**：http 的 MultipartFile 默认发
   /// application/octet-stream，Dify 的视觉模型会因识别不出格式而报
   /// "unsupported image"。
@@ -45,7 +102,6 @@ class DifyApi {
       case 'gif':
         return MediaType('image', 'gif');
       default:
-        // jpg / jpeg / heic / heif 一律按 jpeg 处理
         return MediaType('image', 'jpeg');
     }
   }
@@ -59,6 +115,18 @@ class DifyApi {
 
   /// 上传图片，返回 file_id；失败时抛出带可读原因的异常
   static Future<String> uploadImage(File file) async {
+    try {
+      return await _uploadOnce(file);
+    } catch (e) {
+      if (_isConnError(e)) {
+        DifyConfig.switchEndpoint();
+        return await _uploadOnce(file);
+      }
+      rethrow;
+    }
+  }
+
+  static Future<String> _uploadOnce(File file) async {
     final req = http.MultipartRequest(
       'POST',
       Uri.parse('${DifyConfig.baseUrl}/v1/files/upload'),
@@ -91,7 +159,6 @@ class DifyApi {
       if (j is Map) {
         final msg = j['message'] ?? j['error'] ?? j['description'];
         if (msg is String) {
-          // 有些错误信息里还嵌着一层 JSON
           final m = RegExp(r'\{"error".*?\}\}').firstMatch(msg);
           if (m != null) {
             try {
@@ -110,12 +177,36 @@ class DifyApi {
   static String _clip(String s) =>
       s.length > 240 ? '${s.substring(0, 240)}…' : s;
 
-  /// 流式对话（SSE）
+  /// 流式对话（SSE）。连接失败时自动换端点重试一次。
   static Stream<DifyChunk> chat({
     required String query,
     String conversationId = '',
     List<Map<String, String>> files = const [],
   }) async* {
+    var got = false;
+    try {
+      await for (final c in _chatOnce(query, conversationId, files)) {
+        got = true;
+        yield c;
+      }
+    } catch (e) {
+      // 只有在「一个字都还没收到」时才换端点重试，避免重复内容
+      if (!got && _isConnError(e)) {
+        DifyConfig.switchEndpoint();
+        await for (final c in _chatOnce(query, conversationId, files)) {
+          yield c;
+        }
+      } else {
+        rethrow;
+      }
+    }
+  }
+
+  static Stream<DifyChunk> _chatOnce(
+    String query,
+    String conversationId,
+    List<Map<String, String>> files,
+  ) async* {
     final client = http.Client();
     final req = http.Request(
       'POST',

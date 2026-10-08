@@ -1,7 +1,7 @@
 name: huangyou_kesong
 description: 黄油可颂 —— 行测智能体（花生十三 × 郭熙 课程蒸馏知识库）
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: '>=3.3.0 <4.0.0'

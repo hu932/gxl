@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'api.dart';
 import 'chat_page.dart';
 import 'store.dart';
 import 'theme.dart';
@@ -8,6 +9,8 @@ import 'theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ChatStore.init();
+  // 探测服务端点：8080 优先，不通则自动改用 80 端口反代
+  await DifyConfig.resolve();
   runApp(const ButterCroissantApp());
 }
 
