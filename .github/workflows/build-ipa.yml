@@ -13,22 +13,26 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Flutter（最新稳定版）
+      - name: 安装 Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      - name: 环境诊断
-        run: |
-          flutter --version
-          xcodebuild -version
-
       - name: 构建 IPA
-        run: bash setup_and_build.sh
+        run: |
+          set -x
+          bash setup_and_build.sh 2>&1 | tee build.log
+        continue-on-error: true
+
+      - name: 失败时输出日志注解
+        if: failure()
+        run: tail -n 60 build.log | sed 's/^/::error::/'
 
       - name: 上传 IPA 产物
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: 黄油可颂-免签IPA
           path: build/ios/ipa/*.ipa
+          if-no-files-found: ignore
           retention-days: 30
