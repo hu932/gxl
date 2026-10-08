@@ -10,10 +10,10 @@ import 'theme.dart';
 
 class ChatMessage {
   final String role; // 'user' | 'assistant'
-  final String content;
-  final List<Citation> citations;
-  final bool pending;
-  ChatMessage(this.role, this.content,
+  String content; // 流式追加，必须可变
+  List<Citation> citations; // 结束时回填引用，必须可变
+  bool pending; // 是否还在生成
+  ChatMessage(String this.role, this.content,
       {this.citations = const [], this.pending = false});
 }
 
