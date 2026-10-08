@@ -129,7 +129,7 @@ Try `flutter pub outdated` for more information.
 Warning: Building for device with codesigning disabled. You will have to manually codesign before deploying to device.
 Archiving com.buttercroissant.huangyouKesong...
 Running Xcode build...                                          
-Xcode archive done.                                         56.2s
+Xcode archive done.                                         74.2s
 ✓ Built build/ios/archive/Runner.xcarchive (178.0MB)
 
 [✓] App Settings Validation
@@ -151,14 +151,14 @@ Codesigning disabled with --no-codesign, skipping IPA.
 Warning: Building for device with codesigning disabled. You will have to manually codesign before deploying to device.
 Building com.buttercroissant.huangyouKesong for device (ios-release)...
 Running Xcode build...                                          
-Xcode build done.                                           45.4s
+Xcode build done.                                           66.3s
 ✓ Built build/ios/iphoneos/Runner.app (19.3MB)
 方式2 退出码: 0
 方式2 产出 IPA: build/ios/ipa/Runner.ipa
 
 ==> 产物检查
-total 18296
-drwxr-xr-x  3 runner  staff       96 Oct  8 23:34 .
-drwxr-xr-x  8 runner  staff      256 Oct  8 23:34 ..
--rw-r--r--  1 runner  staff  8899904 Oct  8 23:34 Runner.ipa
+total 17392
+drwxr-xr-x  3 runner  staff       96 Oct  8 23:44 .
+drwxr-xr-x  8 runner  staff      256 Oct  8 23:44 ..
+-rw-r--r--  1 runner  staff  8901660 Oct  8 23:44 Runner.ipa
 ✅ 完成：build/ios/ipa/Runner.ipa
