@@ -1,7 +1,7 @@
 ==> 环境
-Flutter 3.47.6 • channel stable • https://github.com/flutter/flutter.git
-Framework • revision 5fc346839b (8 days ago) • 2026-09-30 15:02:49 -0700
-Engine • hash b8c8d3d8d5d0095127057f8a29ca8cc53da2167c (revision 692136cb65) (9 days ago) • 2026-09-30 00:56:59.000Z
+Flutter 3.47.7 • channel stable • https://github.com/flutter/flutter.git
+Framework • revision abaf9c5237 (7 hours ago) • 2026-10-08 09:51:21 -0700
+Engine • hash d8a2d6c768c334d53e16277f837970ffa1e2de81 (revision deb287481e) (36 hours ago) • 2026-10-07 17:09:12.000Z
 Tools • Dart 3.13.5 • DevTools 2.60.0
 Xcode 26.6
 Build version 17F113
@@ -129,12 +129,12 @@ Try `flutter pub outdated` for more information.
 Warning: Building for device with codesigning disabled. You will have to manually codesign before deploying to device.
 Archiving com.buttercroissant.huangyouKesong...
 Running Xcode build...                                          
-Xcode archive done.                                         62.2s
+Xcode archive done.                                         56.2s
 ✓ Built build/ios/archive/Runner.xcarchive (178.0MB)
 
 [✓] App Settings Validation
     • Version Number: 1.0.0
-    • Build Number: 3
+    • Build Number: 4
     • Display Name: 黄油可颂
     • Deployment Target: 15.0
     • Bundle Identifier: com.buttercroissant.huangyouKesong
@@ -151,14 +151,14 @@ Codesigning disabled with --no-codesign, skipping IPA.
 Warning: Building for device with codesigning disabled. You will have to manually codesign before deploying to device.
 Building com.buttercroissant.huangyouKesong for device (ios-release)...
 Running Xcode build...                                          
-Xcode build done.                                           44.6s
+Xcode build done.                                           45.4s
 ✓ Built build/ios/iphoneos/Runner.app (19.3MB)
 方式2 退出码: 0
 方式2 产出 IPA: build/ios/ipa/Runner.ipa
 
 ==> 产物检查
-total 17376
-drwxr-xr-x  3 runner  staff       96 Oct  8 23:21 .
-drwxr-xr-x  8 runner  staff      256 Oct  8 23:21 ..
--rw-r--r--  1 runner  staff  8895510 Oct  8 23:21 Runner.ipa
+total 18296
+drwxr-xr-x  3 runner  staff       96 Oct  8 23:34 .
+drwxr-xr-x  8 runner  staff      256 Oct  8 23:34 ..
+-rw-r--r--  1 runner  staff  8899904 Oct  8 23:34 Runner.ipa
 ✅ 完成：build/ios/ipa/Runner.ipa
