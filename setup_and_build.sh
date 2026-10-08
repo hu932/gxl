@@ -32,8 +32,17 @@ $P -c "Set :CFBundleDisplayName 黄油可颂" "$INFO" 2>/dev/null \
   || $P -c "Add :CFBundleDisplayName string 黄油可颂" "$INFO" || true
 $P -c "Add :NSAppTransportSecurity dict" "$INFO" 2>/dev/null || true
 $P -c "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true" "$INFO" 2>/dev/null || true
+$P -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" "$INFO" 2>/dev/null || true
 $P -c "Add :NSCameraUsageDescription string 用于拍照提问" "$INFO" 2>/dev/null || true
 $P -c "Add :NSPhotoLibraryUsageDescription string 用于选择题目图片" "$INFO" 2>/dev/null || true
+
+# 【关键】本地网络权限：iOS 14+ 对 App 直连 IP 地址会要求此权限。
+# 缺少这个 key 时系统会「静默拒绝」，表现为 No route to host (errno 65)，
+# 而 Safari 不受此限（所以浏览器能打开、App 打不开）。
+$P -c "Add :NSLocalNetworkUsageDescription string 用于连接行测知识库服务，获取解题内容" "$INFO" 2>/dev/null || true
+$P -c "Add :NSBonjourServices array" "$INFO" 2>/dev/null || true
+echo "--- 本地网络权限 ---"
+$P -c "Print :NSLocalNetworkUsageDescription" "$INFO" 2>/dev/null || true
 
 # 中文本地化：不声明的话 iOS 可能只提供英文键盘（切不了中文输入法）
 $P -c "Set :CFBundleDevelopmentRegion zh_CN" "$INFO" 2>/dev/null \
