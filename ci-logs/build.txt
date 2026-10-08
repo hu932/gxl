@@ -108,29 +108,33 @@ zh_CN
 ==> flutter pub get
 Resolving dependencies...
 Downloading packages...
+  code_assets 1.2.1 (2.1.0 available)
   cross_file 0.3.5+5 (0.4.0 available)
   cupertino_icons 1.0.9 (2.0.0 available)
   flutter_lints 4.0.0 (6.0.0 available)
   flutter_markdown 0.7.7+1 (discontinued replaced by flutter_markdown_plus)
+  hooks 2.0.2 (2.2.0 available)
   lints 4.0.0 (6.1.0 available)
   material_color_utilities 0.13.0 (0.13.1 available)
   meta 1.18.3 (1.19.0 available)
+  objective_c 9.5.0 (9.6.2 available)
+  record_use 0.6.0 (1.1.1 available)
   test_api 0.7.12 (0.7.15 available)
   vector_math 2.4.0 (2.4.3 available)
 Got dependencies!
 1 package is discontinued.
-8 packages have newer versions incompatible with dependency constraints.
+12 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 ==> 方式1：flutter build ipa --release --no-codesign
 Warning: Building for device with codesigning disabled. You will have to manually codesign before deploying to device.
 Archiving com.buttercroissant.huangyouKesong...
 Running Xcode build...                                          
-Xcode archive done.                                         86.0s
-✓ Built build/ios/archive/Runner.xcarchive (176.7MB)
+Xcode archive done.                                         79.0s
+✓ Built build/ios/archive/Runner.xcarchive (178.0MB)
 
 [✓] App Settings Validation
     • Version Number: 1.0.0
-    • Build Number: 1
+    • Build Number: 2
     • Display Name: 黄油可颂
     • Deployment Target: 15.0
     • Bundle Identifier: com.buttercroissant.huangyouKesong
@@ -147,14 +151,14 @@ Codesigning disabled with --no-codesign, skipping IPA.
 Warning: Building for device with codesigning disabled. You will have to manually codesign before deploying to device.
 Building com.buttercroissant.huangyouKesong for device (ios-release)...
 Running Xcode build...                                          
-Xcode build done.                                           69.4s
-✓ Built build/ios/iphoneos/Runner.app (18.5MB)
+Xcode build done.                                           68.3s
+✓ Built build/ios/iphoneos/Runner.app (19.3MB)
 方式2 退出码: 0
 方式2 产出 IPA: build/ios/ipa/Runner.ipa
 
 ==> 产物检查
-total 17112
-drwxr-xr-x  3 runner  staff       96 Oct  8 21:18 .
-drwxr-xr-x  8 runner  staff      256 Oct  8 21:18 ..
--rw-r--r--  1 runner  staff  8451449 Oct  8 21:18 Runner.ipa
+total 18872
+drwxr-xr-x  3 runner  staff       96 Oct  8 22:18 .
+drwxr-xr-x  8 runner  staff      256 Oct  8 22:18 ..
+-rw-r--r--  1 runner  staff  8891872 Oct  8 22:18 Runner.ipa
 ✅ 完成：build/ios/ipa/Runner.ipa
