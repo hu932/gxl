@@ -4,57 +4,87 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'models.dart';
 
 /// Dify 服务配置（行测知识库）
 ///
-/// 双端点：**8080 直连优先**，若被运营商/防火墙拦截（表现为 No route to host）
-/// 则自动切到 80 端口的 nginx 反向代理（/dify/ -> 127.0.0.1:8080）。
+/// 多端点自动切换：
+///   0) http://38.175.194.43:8080   直连
+///   1) http://38.175.194.43/dify   80 端口反代
+///
+/// 部分运营商/网络会拦截 8080 出站（表现为 `No route to host, errno=65`），
+/// 此时自动改用 80 端口反代。**可用的端点会被记住**，下次启动直接使用。
 class DifyConfig {
-  /// 直连 Dify 端口
-  static const endpointDirect = 'http://38.175.194.43:8080';
+  static const endpoints = <String>[
+    'http://38.175.194.43:8080',
+    'http://38.175.194.43/dify',
+  ];
 
-  /// 80 端口反代（备用）
-  static const endpointProxy = 'http://38.175.194.43/dify';
+  static const labels = <String>['8080 直连', '80 反代'];
 
   static const apiKey = 'app-ZuI2yGKf1UxE6Rj9nJf0quRQ';
   static const user = 'ios-user-001';
 
-  static String _active = endpointDirect;
+  static int _idx = 0;
+  static File? _store;
 
-  static String get baseUrl => _active;
-  static String get otherEndpoint =>
-      _active == endpointDirect ? endpointProxy : endpointDirect;
-  static bool get usingDirect => _active == endpointDirect;
+  static String get baseUrl => endpoints[_idx];
+  static String get activeLabel => labels[_idx];
 
+  // ---------- 端点记忆 ----------
+  static Future<void> _load() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      _store = File('${dir.path}/huangyou_endpoint.txt');
+      if (await _store!.exists()) {
+        final i = int.tryParse((await _store!.readAsString()).trim());
+        if (i != null && i >= 0 && i < endpoints.length) _idx = i;
+      }
+    } catch (_) {}
+  }
+
+  static Future<void> _save() async {
+    try {
+      await _store?.writeAsString('$_idx');
+    } catch (_) {}
+  }
+
+  // ---------- 探测 ----------
   static Future<bool> _alive(String base) async {
     try {
       final r = await http
           .get(Uri.parse('$base/console/api/setup'))
-          .timeout(const Duration(seconds: 4));
+          .timeout(const Duration(seconds: 3));
       return r.statusCode == 200;
     } catch (_) {
       return false;
     }
   }
 
-  /// 启动时探测：8080 不通就用 80 端口
+  /// 启动时调用：**并行**探测所有端点，优先沿用上次成功的那个
   static Future<void> resolve() async {
-    if (await _alive(endpointDirect)) {
-      _active = endpointDirect;
-      return;
+    await _load();
+    final futures = <Future<bool>>[];
+    for (final e in endpoints) {
+      futures.add(_alive(e));
     }
-    if (await _alive(endpointProxy)) {
-      _active = endpointProxy;
-      return;
+    final res = await Future.wait(futures);
+    final alive = <int>[];
+    for (var i = 0; i < res.length; i++) {
+      if (res[i]) alive.add(i);
     }
-    _active = endpointDirect; // 都探测失败就先保持直连，出错时再切换
+    if (alive.isEmpty) return; // 全不通就保持现状，发消息时再逐个重试
+    if (alive.contains(_idx)) return; // 记住的那个还能用
+    _idx = alive.first;
+    await _save();
   }
 
-  /// 切到另一个端点
-  static void switchEndpoint() {
-    _active = otherEndpoint;
+  /// 换到下一个端点（并记住）
+  static Future<void> nextEndpoint() async {
+    _idx = (_idx + 1) % endpoints.length;
+    await _save();
   }
 }
 
@@ -76,18 +106,24 @@ class DifyChunk {
 
 class DifyApi {
   /// 判断是否为「连不上」类错误（这类才值得换端点重试）
-  static bool _isConnError(Object e) {
+  static bool isConnError(Object e) {
     if (e is SocketException || e is TimeoutException) return true;
     final s = e.toString().toLowerCase();
-    return s.contains('sockeexception') ||
-        s.contains('socketexception') ||
+    return s.contains('socketexception') ||
         s.contains('clientexception') ||
         s.contains('no route to host') ||
         s.contains('connection refused') ||
         s.contains('connection failed') ||
+        s.contains('connection reset') ||
         s.contains('timed out') ||
-        s.contains('timeout');
+        s.contains('timeout') ||
+        s.contains('network is unreachable');
   }
+
+  /// 全部端点都失败时给出的提示
+  static String allFailedMessage(Object e) =>
+      '⚠️ 请求失败\n\n所有线路都连不上（${DifyConfig.labels.join(' / ')}）。\n'
+      '请检查手机网络，或稍后重试。\n\n技术信息：$e';
 
   /// 根据扩展名推断 MIME。**必须显式指定**：http 的 MultipartFile 默认发
   /// application/octet-stream，Dify 的视觉模型会因识别不出格式而报
@@ -113,17 +149,19 @@ class DifyApi {
     return 'question.jpg';
   }
 
-  /// 上传图片，返回 file_id；失败时抛出带可读原因的异常
+  /// 上传图片：逐个端点尝试，返回 file_id
   static Future<String> uploadImage(File file) async {
-    try {
-      return await _uploadOnce(file);
-    } catch (e) {
-      if (_isConnError(e)) {
-        DifyConfig.switchEndpoint();
+    Object? lastErr;
+    for (var a = 0; a < DifyConfig.endpoints.length; a++) {
+      try {
         return await _uploadOnce(file);
+      } catch (e) {
+        lastErr = e;
+        if (!isConnError(e)) rethrow;
+        await DifyConfig.nextEndpoint();
       }
-      rethrow;
     }
+    throw Exception(allFailedMessage(lastErr ?? '未知错误'));
   }
 
   static Future<String> _uploadOnce(File file) async {
@@ -177,29 +215,29 @@ class DifyApi {
   static String _clip(String s) =>
       s.length > 240 ? '${s.substring(0, 240)}…' : s;
 
-  /// 流式对话（SSE）。连接失败时自动换端点重试一次。
+  /// 流式对话（SSE）：**依次尝试所有端点**，任一成功即返回
   static Stream<DifyChunk> chat({
     required String query,
     String conversationId = '',
     List<Map<String, String>> files = const [],
   }) async* {
-    var got = false;
-    try {
-      await for (final c in _chatOnce(query, conversationId, files)) {
-        got = true;
-        yield c;
-      }
-    } catch (e) {
-      // 只有在「一个字都还没收到」时才换端点重试，避免重复内容
-      if (!got && _isConnError(e)) {
-        DifyConfig.switchEndpoint();
+    Object? lastErr;
+    for (var a = 0; a < DifyConfig.endpoints.length; a++) {
+      var got = false;
+      try {
         await for (final c in _chatOnce(query, conversationId, files)) {
+          got = true;
           yield c;
         }
-      } else {
-        rethrow;
+        return; // 成功
+      } catch (e) {
+        lastErr = e;
+        // 已开始输出内容就不重试（避免重复），非连接错误也不重试
+        if (got || !isConnError(e)) rethrow;
+        await DifyConfig.nextEndpoint();
       }
     }
+    throw Exception(allFailedMessage(lastErr ?? '未知错误'));
   }
 
   static Stream<DifyChunk> _chatOnce(

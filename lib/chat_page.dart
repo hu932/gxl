@@ -318,6 +318,8 @@ class _ChatPageState extends State<ChatPage> {
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13.5, height: 1.6, color: _subColor),
           ),
+          const SizedBox(height: 14),
+          _connStatus(),
           const SizedBox(height: 26),
           Align(
             alignment: Alignment.centerLeft,
@@ -330,6 +332,36 @@ class _ChatPageState extends State<ChatPage> {
           const SizedBox(height: 10),
           ..._quickQs.map(_chip),
         ],
+      ),
+    );
+  }
+
+  /// 显示当前线路，点一下可重新探测
+  Widget _connStatus() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () async {
+        _toast('正在检测线路…');
+        await DifyConfig.resolve();
+        if (!mounted) return;
+        setState(() {});
+        _toast('当前线路：${DifyConfig.activeLabel}');
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+        decoration: BoxDecoration(
+          color: _dark ? const Color(0xFF332C22) : ButterColors.creamDeep,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_tethering_rounded, size: 13, color: _subColor),
+            const SizedBox(width: 5),
+            Text('线路：${DifyConfig.activeLabel} · 点击重测',
+                style: TextStyle(fontSize: 11, color: _subColor)),
+          ],
+        ),
       ),
     );
   }
