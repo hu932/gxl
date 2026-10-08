@@ -1,0 +1,29 @@
+name: 构建黄油可颂 IPA（免签）
+
+on:
+  push:
+    branches: [main, master]   # 推送到主分支自动编译
+  workflow_dispatch: {}        # 也可手动触发
+
+jobs:
+  build:
+    runs-on: macos-latest   # GitHub 免费 macOS 云端编译
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.24.5'
+
+      - name: 构建 IPA
+        run: bash setup_and_build.sh
+
+      - name: 上传 IPA 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: 黄油可颂-免签IPA
+          path: build/ios/ipa/*.ipa
+          retention-days: 30
