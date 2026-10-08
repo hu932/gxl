@@ -158,16 +158,21 @@ class DifyApi {
     return 'question.jpg';
   }
 
-  /// 上传图片：逐个端点尝试，返回 file_id
+  /// 上传图片：逐个端点尝试，全失败后延迟再整轮重试一次
   static Future<String> uploadImage(File file) async {
     Object? lastErr;
-    for (var a = 0; a < DifyConfig.endpoints.length; a++) {
-      try {
-        return await _uploadOnce(file);
-      } catch (e) {
-        lastErr = e;
-        if (!isConnError(e)) rethrow;
-        await DifyConfig.nextEndpoint();
+    for (var round = 0; round < 2; round++) {
+      if (round > 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 1200));
+      }
+      for (var a = 0; a < DifyConfig.endpoints.length; a++) {
+        try {
+          return await _uploadOnce(file);
+        } catch (e) {
+          lastErr = e;
+          if (!isConnError(e)) rethrow;
+          await DifyConfig.nextEndpoint();
+        }
       }
     }
     throw Exception(allFailedMessage(lastErr ?? '未知错误'));
@@ -224,26 +229,32 @@ class DifyApi {
   static String _clip(String s) =>
       s.length > 240 ? '${s.substring(0, 240)}…' : s;
 
-  /// 流式对话（SSE）：**依次尝试所有端点**，任一成功即返回
+  /// 流式对话（SSE）：**依次尝试所有端点**，全部失败后延迟再整轮重试一次
   static Stream<DifyChunk> chat({
     required String query,
     String conversationId = '',
     List<Map<String, String>> files = const [],
   }) async* {
     Object? lastErr;
-    for (var a = 0; a < DifyConfig.endpoints.length; a++) {
-      var got = false;
-      try {
-        await for (final c in _chatOnce(query, conversationId, files)) {
-          got = true;
-          yield c;
+    // 第 0 轮立即试；第 1 轮等 1.2 秒再试（应对瞬时抖动/网络切换）
+    for (var round = 0; round < 2; round++) {
+      if (round > 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 1200));
+      }
+      for (var a = 0; a < DifyConfig.endpoints.length; a++) {
+        var got = false;
+        try {
+          await for (final c in _chatOnce(query, conversationId, files)) {
+            got = true;
+            yield c;
+          }
+          return; // 成功
+        } catch (e) {
+          lastErr = e;
+          // 已开始输出内容就不重试（避免重复），非连接错误也不重试
+          if (got || !isConnError(e)) rethrow;
+          await DifyConfig.nextEndpoint();
         }
-        return; // 成功
-      } catch (e) {
-        lastErr = e;
-        // 已开始输出内容就不重试（避免重复），非连接错误也不重试
-        if (got || !isConnError(e)) rethrow;
-        await DifyConfig.nextEndpoint();
       }
     }
     throw Exception(allFailedMessage(lastErr ?? '未知错误'));
