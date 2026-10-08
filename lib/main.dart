@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'chat_page.dart';
+import 'store.dart';
 import 'theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ChatStore.init();
   runApp(const ButterCroissantApp());
 }
 
@@ -16,8 +19,10 @@ class ButterCroissantApp extends StatelessWidget {
     return MaterialApp(
       title: '黄油可颂',
       debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
-      // 声明中文支持：否则 iOS 可能只给英文键盘（无法切换中文输入法）
+      theme: buildTheme(dark: false),
+      darkTheme: buildTheme(dark: true),
+      themeMode: ThemeMode.system,
+      // 声明中文支持：否则 iOS 可能只给英文键盘（切不了中文输入法）
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
+import 'models.dart';
+
 /// Dify 服务配置（行测知识库）
 /// 走服务器 nginx 的 80 端口反向代理（/dify/ -> 127.0.0.1:8080），
 /// 因为 8080 端口会被部分运营商/防火墙拦截（表现为 No route to host）。
@@ -27,12 +29,7 @@ class DifyChunk {
   });
 }
 
-/// 引用来源
-class Citation {
-  final String dataset;
-  final String document;
-  Citation(this.dataset, this.document);
-}
+/// 引用来源 Citation 统一由 models.dart 提供（避免同名类重复定义造成 import 歧义）
 
 class DifyApi {
   /// 根据扩展名推断 MIME。**必须显式指定**：http 的 MultipartFile 默认发

@@ -13,6 +13,10 @@ android/.gradle/
 android/local.properties
 android/app/.cxx/
 
+# 本地辅助脚本（给我自己调试用，不打进仓库）
+_*.py
+Payload/
+*.log
+
 # 系统
 .DS_Store
-*.log
