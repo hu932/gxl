@@ -10,19 +10,28 @@ import 'models.dart';
 
 /// Dify 服务配置（行测知识库）
 ///
-/// 多端点自动切换：
-///   0) http://38.175.194.43:8080   直连
-///   1) http://38.175.194.43/dify   80 端口反代
+/// 多端点自动切换（4 条线路，任一可用即可）：
+///   0) http://38.175.194.43:8080   直连 Dify
+///   1) http://38.175.194.43/dify   80 端口 nginx 反代
+///   2) http://38.175.194.43:2038   备用线路
+///   3) http://38.175.194.43:31058  备用线路
 ///
-/// 部分运营商/网络会拦截 8080 出站（表现为 `No route to host, errno=65`），
-/// 此时自动改用 80 端口反代。**可用的端点会被记住**，下次启动直接使用。
+/// 部分网络会间歇性阻断某些端口（表现为 `No route to host, errno=65`），
+/// 此时自动换下一条。**可用的线路会被记住**，下次启动直接从它开始。
 class DifyConfig {
   static const endpoints = <String>[
     'http://38.175.194.43:8080',
     'http://38.175.194.43/dify',
+    'http://38.175.194.43:2038',
+    'http://38.175.194.43:31058',
   ];
 
-  static const labels = <String>['8080 直连', '80 反代'];
+  static const labels = <String>[
+    '8080 直连',
+    '80 反代',
+    '2038 备用',
+    '31058 备用',
+  ];
 
   static const apiKey = 'app-ZuI2yGKf1UxE6Rj9nJf0quRQ';
   static const user = 'ios-user-001';
