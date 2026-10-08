@@ -5,6 +5,9 @@ on:
     branches: [main, master]
   workflow_dispatch: {}
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: macos-latest
@@ -19,18 +22,27 @@ jobs:
           channel: stable
 
       - name: 构建 IPA
+        id: build
         run: |
           set +e
           bash setup_and_build.sh > build.log 2>&1
           rc=$?
           set -e
           echo "==== 构建退出码: $rc ===="
-          tail -n 80 build.log
-          if [ "$rc" -ne 0 ]; then
-            echo "::error::构建失败，退出码 $rc"
-            tail -n 80 build.log | sed 's/^/::error::/'
-          fi
+          tail -n 60 build.log
+          mkdir -p ci-logs
+          cp build.log ci-logs/build.txt
+          echo "exit_code=$rc" > ci-logs/result.txt
           exit $rc
+
+      - name: 回传日志到仓库（便于远程排查）
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
+          git add -f ci-logs
+          git commit -m "CI 构建日志 [skip ci]" || true
+          git push || true
 
       - name: 上传 IPA 产物
         if: always()
