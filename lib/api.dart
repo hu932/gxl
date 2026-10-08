@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 /// Dify 服务配置（行测知识库）
+/// 走服务器 nginx 的 80 端口反向代理（/dify/ -> 127.0.0.1:8080），
+/// 因为 8080 端口会被部分运营商/防火墙拦截（表现为 No route to host）。
 class DifyConfig {
-  static const baseUrl = 'http://38.175.194.43:8080';
+  static const baseUrl = 'http://38.175.194.43/dify';
   static const apiKey = 'app-ZuI2yGKf1UxE6Rj9nJf0quRQ';
   static const user = 'ios-user-001';
 }
